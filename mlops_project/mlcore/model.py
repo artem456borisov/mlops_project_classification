@@ -1,6 +1,5 @@
-import torch
-
 import lightning as L
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -17,8 +16,9 @@ class TextsClassifier(nn.Module):
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, 1)
         self.dropout = nn.Dropout(dropout)
+
     #     self._init_weights()
-    
+
     # def _init_weights(self):
     #     """Initialize weights with appropriate scaling"""
     #     for module in [self.fc1, self.fc2]:
@@ -33,6 +33,7 @@ class TextsClassifier(nn.Module):
         x = self.dropout(x)
         return torch.sigmoid(self.fc2(x))
 
+
 class LightningClassifier(L.LightningModule):
     def __init__(self):
         super().__init__()
@@ -43,19 +44,23 @@ class LightningClassifier(L.LightningModule):
         print(inputs)
         probs = self.model(inputs)
         return (probs > 0.5).float()
-    
+
     def training_step(self, batch):
         inputs, target = batch
         output = self.model(inputs)
         loss = self.criterion(output.reshape(-1), target)
-        self.log('train_loss', loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+        self.log(
+            "train_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True
+        )
         return loss
-    
+
     def validation_step(self, batch):
         inputs, target = batch
         output = self.model(inputs)
         loss = self.criterion(output.reshape(-1), target)
-        self.log('valid_loss', loss, prog_bar=True, logger=True, on_step=True, on_epoch=True)
+        self.log(
+            "valid_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True
+        )
 
     def on_before_optimizer_step(self, optimizer):
         """Clip gradients to prevent explosion"""

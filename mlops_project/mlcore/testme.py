@@ -1,14 +1,14 @@
-from dataset import M4GTDataModule
 import torch
+from dataset import M4GTDataModule
 
 # Force CPU instead of MPS
-torch.set_default_device('cpu')
+torch.set_default_device("cpu")
 
 data_module = M4GTDataModule(
-    train_data_dir=  'data_correct.json',
-    val_data_dir= 'data_correct.json',
-    test_data_dir= 'data_correct.json',
-    predict_data_dir= 'data_correct.json',
+    train_data_dir="data_correct.json",
+    val_data_dir="data_correct.json",
+    test_data_dir="data_correct.json",
+    predict_data_dir="data_correct.json",
 )
 
 from model import LigthningClassifier

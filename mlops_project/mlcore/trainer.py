@@ -1,17 +1,19 @@
+import fire
 import hydra
-
-from utils import get_git_commit
-from omegaconf import DictConfig
-from dataset import M4GTDataModule
-from model import LightningClassifier
 import lightning as L
+from dataset import M4GTDataModule
 from lightning.pytorch.loggers import MLFlowLogger
+from model import LightningClassifier
+from omegaconf import DictConfig
+from utils import get_git_commit
+
 # from lightning.pytorch.callbacks import ModelCheckpoint
+
 
 @hydra.main(version_base=None, config_path="../../config", config_name="config")
 def main(cfg: DictConfig) -> None:
     L.seed_everything(cfg.random_state)
-    print('started running')
+    print("started running")
     mlf_logger = MLFlowLogger(
         experiment_name=cfg.mlflow.experiment_name,
         tracking_uri=cfg.mlflow.tracking_url,
@@ -33,14 +35,15 @@ def main(cfg: DictConfig) -> None:
 
     model_module = LightningClassifier()
 
-    trainer = L.Trainer( 
+    trainer = L.Trainer(
         logger=mlf_logger,
         # callbacks=[checkpoint_callback],
-        max_epochs=10
+        max_epochs=10,
     )
     trainer.fit(model=model_module, datamodule=data_module)
     trainer.fit(model=model_module, datamodule=data_module)
-    print('ended running')
+    print("ended running")
+
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
