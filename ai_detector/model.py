@@ -2,6 +2,8 @@ import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchmetrics.classification import (BinaryF1Score, BinaryPrecision,
+                                         BinaryRecall)
 
 
 class TextsClassifier(nn.Module):
@@ -41,6 +43,14 @@ class LightningClassifier(L.LightningModule):
         self.criterion = nn.BCELoss()
         self.training_config = training_config
 
+        self.train_precision = BinaryPrecision()
+        self.train_recall = BinaryRecall()
+        self.train_f1 = BinaryF1Score()
+
+        self.val_precision = BinaryPrecision()
+        self.val_recall = BinaryRecall()
+        self.val_f1 = BinaryF1Score()
+
     def forward(self, inputs):
         probs = self.model(inputs)
         return probs
@@ -50,20 +60,20 @@ class LightningClassifier(L.LightningModule):
         output = self.model(inputs)
         loss = self.criterion(output.reshape(-1), target)
 
-        preds = (output > 0.5).float()
-        correct = (preds.reshape(-1) == target).float()
-        accuracy = correct.sum() / len(correct)
-        self.log(
-            "train_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True
-        )
-        self.log(
-            "train_accuracy",
-            accuracy,
-            prog_bar=True,
-            logger=True,
-            on_step=True,
-            on_epoch=True,
-        )
+        preds = (output > 0.5).int().flatten()
+        self.train_precision(preds, target.int())
+        self.train_recall(preds, target.int())
+        self.train_f1(preds, target.int())
+
+        accuracy = (preds == target).float().mean()
+
+        self.log("train_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("train_accuracy", accuracy, prog_bar=True, on_epoch=True)
+
+        self.log("train_precision", self.train_precision, prog_bar=False, on_epoch=True)
+        self.log("train_recall", self.train_recall, prog_bar=False, on_epoch=True)
+        self.log("train_f1", self.train_f1, prog_bar=True, on_epoch=True)
+
         return loss
 
     def validation_step(self, batch):
@@ -71,20 +81,19 @@ class LightningClassifier(L.LightningModule):
         output = self.model(inputs)
         loss = self.criterion(output.reshape(-1), target)
 
-        preds = (output > 0.5).float()
-        correct = (preds.reshape(-1) == target).float()
-        accuracy = correct.sum() / len(correct)
-        self.log(
-            "valid_loss", loss, prog_bar=True, logger=True, on_step=True, on_epoch=True
-        )
-        self.log(
-            "valid_accuracy",
-            accuracy,
-            prog_bar=True,
-            logger=True,
-            on_step=True,
-            on_epoch=True,
-        )
+        preds = (output > 0.5).int().flatten()
+
+        self.val_precision(preds, target.int())
+        self.val_recall(preds, target.int())
+        self.val_f1(preds, target.int())
+        accuracy = (preds == target).float().mean()
+
+        self.log("valid_loss", loss, prog_bar=True, on_epoch=True)
+        self.log("valid_accuracy", accuracy, prog_bar=True, on_epoch=True)
+
+        self.log("valid_precision", self.val_precision, on_epoch=True)
+        self.log("valid_recall", self.val_recall, on_epoch=True)
+        self.log("valid_f1", self.val_f1, prog_bar=True, on_epoch=True)
 
     def predict_step(self, batch):
         inputs, target = batch
@@ -92,11 +101,13 @@ class LightningClassifier(L.LightningModule):
         preds = (output > 0.5).int()
         return preds.flatten().tolist()
 
-    def on_before_optimizer_step(self):
+    def on_before_optimizer_step(self, optimizer):
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
     def configure_optimizers(self):
-        if self.training_config.optimizer == 'AdamW':
-            return torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        if self.training_config.optimizer == "AdamW":
+            return torch.optim.AdamW(
+                self.model.parameters(), lr=self.training_config.lr
+            )
         else:
-            return torch.optim.SGD(self.model.parameters(), lr=1e-5)
+            return torch.optim.SGD(self.model.parameters(), lr=self.training_config.lr)

@@ -21,7 +21,6 @@ def train() -> None:
     with initialize(config_path="../config", version_base=None):
         cfg = compose(
             config_name="config",
-            overrides=[f"random_state={42}"],
         )
     L.seed_everything(cfg.random_state)
     print("started running")
@@ -32,24 +31,21 @@ def train() -> None:
     )
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath="checkpoints",
-        filename="best-model-loss-{val_loss.2f}-epoch-{epoch}",
+        dirpath="data/checkpoints",
+        filename="best-model-loss-{valid_loss:.2f}-epoch-{epoch:02d}",
         save_top_k=1,
     )
 
-    data_module = M4GTDataModule(
-        train_data_dir=cfg.data.train_data_dir,
-        val_data_dir=cfg.data.val_data_dir,
-        test_data_dir=cfg.data.test_data_dir,
-        predict_data_dir=cfg.data.predict_data_dir,
-    )
+    data_module = M4GTDataModule(**cfg.data)
 
-    model_module = LightningClassifier(model_config=cfg.model)
+    model_module = LightningClassifier(
+        model_config=cfg.model, training_config=cfg.trainer.optimization
+    )
 
     trainer = L.Trainer(
         logger=mlf_logger,
         callbacks=[checkpoint_callback],
-        max_epochs=10,
+        max_epochs=cfg.trainer.max_epochs,
     )
     trainer.fit(model=model_module, datamodule=data_module)
     trainer.fit(model=model_module, datamodule=data_module)
@@ -64,19 +60,10 @@ def infer(checkpoint_path: str | None = None, output_file: str | None = None):
     with initialize(config_path="../config", version_base=None):
         cfg = compose(config_name="config", overrides=overrides)
     model = LightningClassifier.load_from_checkpoint(cfg.checkpoint_path)
-
-    # Set model to evaluation mode
     model.eval()
 
-    # Prepare data
-    data_module = M4GTDataModule(
-        train_data_dir=cfg.data.train_data_dir,
-        val_data_dir=cfg.data.val_data_dir,
-        test_data_dir=cfg.data.test_data_dir,
-        predict_data_dir=cfg.data.predict_data_dir,
-    )
+    data_module = M4GTDataModule(**cfg.data)
 
-    # Otherwise use the data module's predict dataloader
     data_module.setup(stage="predict")
 
     trainer = L.Trainer()

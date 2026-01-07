@@ -1,0 +1,5 @@
+optimization:
+  optimizer: AdamW
+  lr: 0.00001
+
+max_epochs: 50

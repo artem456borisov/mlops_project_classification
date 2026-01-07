@@ -40,6 +40,7 @@ class M4GTDataModule(L.LightningDataModule):
         self.test_data_dir = test_data_dir
         self.predict_data_dir = predict_data_dir
         self.train_batch_size = train_batch_size
+        self.predict_batch_size = predict_batch_size
 
     def setup(self, stage):
         if stage == "fit":
@@ -64,4 +65,4 @@ class M4GTDataModule(L.LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.train_batch_size)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict_dataset, batch_size=self.train_batch_size)
+        return DataLoader(self.predict_dataset, batch_size=self.predict_batch_size)
