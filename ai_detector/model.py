@@ -35,10 +35,11 @@ class TextsClassifier(nn.Module):
 
 
 class LightningClassifier(L.LightningModule):
-    def __init__(self, model_config: dict):
+    def __init__(self, model_config: dict, training_config: dict):
         super().__init__()
         self.model = TextsClassifier(**model_config)
         self.criterion = nn.BCELoss()
+        self.training_config = training_config
 
     def forward(self, inputs):
         probs = self.model(inputs)
@@ -91,8 +92,11 @@ class LightningClassifier(L.LightningModule):
         preds = (output > 0.5).int()
         return preds.flatten().tolist()
 
-    def on_before_optimizer_step(self, optimizer):
+    def on_before_optimizer_step(self):
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        if self.training_config.optimizer == 'AdamW':
+            return torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        else:
+            return torch.optim.SGD(self.model.parameters(), lr=1e-5)
