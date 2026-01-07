@@ -5,10 +5,5 @@ defaults:
 - model: basic_nn
 - data: default
 
-model:
-  num_parameters: 10
-
-mlflow:
-  tracking_url: "http://127.0.0.1:8080"
-
 random_state: 38
+checkpoint_path: /Users/ruanwko/Desktop/mlops_project/1/af1d7ea891304f74bb0ab7a7f9b820ae/checkpoints/epoch=3-step=6276.ckpt

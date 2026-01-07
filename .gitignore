@@ -147,3 +147,9 @@ dmypy.json
 mlflow.db
 mlops_project/mlcore/demo.csv
 mlops_project/mlcore/tests.ipynb
+mlops_project/mlcore/tests.ipynb
+*.pkl
+*.cv
+*.json
+*.jsonl
+*.ipynb
